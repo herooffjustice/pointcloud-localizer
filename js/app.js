@@ -1,7 +1,7 @@
 (function () {
-  const SOURCE_COLOR = 0x4fc3f7;
-  const TARGET_COLOR = 0xef5350;
-  const POINT_SIZE = 0.012;
+  var SOURCE_COLOR = 0x4fc3f7;
+  var TARGET_COLOR = 0xef5350;
+  var POINT_SIZE = 0.012;
 
   function makePoints(geometry, color, size) {
     var mat = new THREE.PointsMaterial({
@@ -26,14 +26,27 @@
     return geo;
   }
 
-  function centerPoints(arr) {
-    if (!arr || arr.length === 0) return arr;
+  function computeCentroid(arr) {
     var cx = 0, cy = 0, cz = 0;
     for (var i = 0; i < arr.length; i++) {
       cx += arr[i][0]; cy += arr[i][1]; cz += arr[i][2];
     }
-    cx /= arr.length; cy /= arr.length; cz /= arr.length;
-    return arr.map(function (p) { return [p[0] - cx, p[1] - cy, p[2] - cz]; });
+    return [cx / arr.length, cy / arr.length, cz / arr.length];
+  }
+
+  function shiftBy(arr, c) {
+    return arr.map(function (p) { return [p[0] - c[0], p[1] - c[1], p[2] - c[2]]; });
+  }
+
+  function sharedCentroid() {
+    var arrays = Array.prototype.slice.call(arguments);
+    var all = [];
+    for (var a = 0; a < arrays.length; a++) {
+      for (var i = 0; i < arrays[a].length; i++) {
+        all.push(arrays[a][i]);
+      }
+    }
+    return computeCentroid(all);
   }
 
   function setupScene(canvas, orbitEnabled) {
@@ -175,10 +188,17 @@
   var currentSource = null;
 
   function initRegistration() {
-    var srcArr = centerPoints(regData.source);
-    var tgtArr = centerPoints(regData.target);
-    var srcPtpArr = centerPoints(regData.source_registered_ptp);
-    var srcPtplArr = centerPoints(regData.source_registered_ptpl);
+    var c = sharedCentroid(
+      regData.target,
+      regData.source,
+      regData.source_registered_ptp,
+      regData.source_registered_ptpl
+    );
+
+    var tgtArr = shiftBy(regData.target, c);
+    var srcArr = shiftBy(regData.source, c);
+    var srcPtpArr = shiftBy(regData.source_registered_ptp, c);
+    var srcPtplArr = shiftBy(regData.source_registered_ptpl, c);
 
     var tgtGeo = arrayToGeometry(tgtArr);
     targetPoints = makePoints(tgtGeo, TARGET_COLOR);
@@ -213,13 +233,13 @@
     if (view === "before") {
       statsEl.innerHTML =
         '<div class="stat-item"><div class="stat-label">View</div><div class="stat-value" style="color:var(--text-muted)">Unaligned</div></div>' +
-        '<div class="stat-item"><div class="stat-label">Method</div><div class="stat-value" style="color:var(--text-muted)">—</div></div>' +
+        '<div class="stat-item"><div class="stat-label">Method</div><div class="stat-value" style="color:var(--text-muted)">\u2014</div></div>' +
         '<div class="stat-item"><div class="stat-label">Points</div><div class="stat-value">' + regData.source.length.toLocaleString() + '</div></div>';
     } else if (view === "ptp") {
       var r = regData.ptp_result;
       statsEl.innerHTML =
         '<div class="stat-item"><div class="stat-label">Method</div><div class="stat-value">PtP</div></div>' +
-        '<div class="stat-item"><div class="stat-label">Rot Error</div><div class="stat-value">' + r.rotation_error_deg.toFixed(3) + '°</div></div>' +
+        '<div class="stat-item"><div class="stat-label">Rot Error</div><div class="stat-value">' + r.rotation_error_deg.toFixed(3) + '\u00b0</div></div>' +
         '<div class="stat-item"><div class="stat-label">Trans Error</div><div class="stat-value">' + r.translation_error_m.toFixed(5) + 'm</div></div>' +
         '<div class="stat-item"><div class="stat-label">Final RMSE</div><div class="stat-value" style="color:var(--success)">' + r.final_rmse.toFixed(5) + '</div></div>' +
         '<div class="stat-item"><div class="stat-label">Iterations</div><div class="stat-value">' + r.iterations + '</div></div>';
@@ -227,7 +247,7 @@
       var r2 = regData.ptpl_result;
       statsEl.innerHTML =
         '<div class="stat-item"><div class="stat-label">Method</div><div class="stat-value">PtPl</div></div>' +
-        '<div class="stat-item"><div class="stat-label">Rot Error</div><div class="stat-value">' + r2.rotation_error_deg.toFixed(3) + '°</div></div>' +
+        '<div class="stat-item"><div class="stat-label">Rot Error</div><div class="stat-value">' + r2.rotation_error_deg.toFixed(3) + '\u00b0</div></div>' +
         '<div class="stat-item"><div class="stat-label">Trans Error</div><div class="stat-value">' + r2.translation_error_m.toFixed(5) + 'm</div></div>' +
         '<div class="stat-item"><div class="stat-label">Final RMSE</div><div class="stat-value" style="color:var(--success)">' + r2.final_rmse.toFixed(5) + '</div></div>' +
         '<div class="stat-item"><div class="stat-label">Iterations</div><div class="stat-value">' + r2.iterations + '</div></div>';
@@ -255,20 +275,23 @@
   var algoCamera = algoSetup.camera;
 
   var algoTargetPoints = null;
-  var algoSourcePoints = null;
   var algoStepGeometries = [];
   var currentAlgoStep = 0;
   var algoPlaying = false;
   var algoTimer = null;
 
   function initAlgorithm() {
-    var tgtArr = centerPoints(algoData.target);
+    var allSourceArrs = algoData.steps.map(function (s) { return s.source; });
+    allSourceArrs.unshift(algoData.target);
+    var c = sharedCentroid.apply(null, allSourceArrs);
+
+    var tgtArr = shiftBy(algoData.target, c);
     var tgtGeo = arrayToGeometry(tgtArr);
     algoTargetPoints = makePoints(tgtGeo, TARGET_COLOR, 0.018);
     algoScene.add(algoTargetPoints);
 
     for (var i = 0; i < algoData.steps.length; i++) {
-      var srcArr = centerPoints(algoData.steps[i].source);
+      var srcArr = shiftBy(algoData.steps[i].source, c);
       var srcGeo = arrayToGeometry(srcArr);
       var pts = makePoints(srcGeo, SOURCE_COLOR, 0.018);
       pts.visible = i === 0;
@@ -453,10 +476,10 @@
       html += '<div class="heatmap-label">' + data.misalignment_labels[j] + '</div>';
     }
     for (var i = 0; i < nNoise; i++) {
-      html += '<div class="heatmap-label">σ=' + data.noise_levels[i] + '</div>';
+      html += '<div class="heatmap-label">\u03c3=' + data.noise_levels[i] + '</div>';
       for (var j = 0; j < nMisalign; j++) {
         var val = metricData[i][j];
-        var formatted = currentMetric === "rotation_error_deg" ? val.toFixed(2) + "°"
+        var formatted = currentMetric === "rotation_error_deg" ? val.toFixed(2) + "\u00b0"
           : currentMetric === "translation_error_m" ? val.toFixed(4) + "m"
           : val.toFixed(4);
         html += '<div class="heatmap-cell" style="background:' + heatmapColor(val, minVal, maxVal) + '">' + formatted + '</div>';
@@ -474,7 +497,7 @@
     thead.innerHTML = "";
     tbody.innerHTML = "";
 
-    var cols = ["Noise σ (m)", "Misalignment", "Rot Error (°)", "Trans Error (m)", "Final RMSE", "Iterations"];
+    var cols = ["Noise \u03c3 (m)", "Misalignment", "Rot Error (\u00b0)", "Trans Error (m)", "Final RMSE", "Iterations"];
     cols.forEach(function (c) {
       var th = document.createElement("th");
       th.textContent = c;
@@ -485,7 +508,7 @@
       var tr = document.createElement("tr");
       var cells = [
         r.noise_sigma,
-        r.max_rotation_deg + "° / " + r.max_translation_m + "m",
+        r.max_rotation_deg + "\u00b0 / " + r.max_translation_m + "m",
         r.rotation_error_deg.toFixed(3),
         r.translation_error_m.toFixed(5),
         r.final_rmse.toFixed(5),

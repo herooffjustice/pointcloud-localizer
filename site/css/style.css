@@ -120,9 +120,18 @@ nav {
   overflow: hidden;
 }
 
+.hero-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 48px;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 24px;
+}
+
 .hero-content {
-  flex: 1;
-  padding: 60px 0 60px 0;
+  flex: 0 0 420px;
   z-index: 2;
 }
 
@@ -136,11 +145,10 @@ nav {
 }
 
 #hero h1 {
-  font-size: clamp(36px, 5vw, 56px);
+  font-size: clamp(32px, 4vw, 52px);
   font-weight: 700;
   line-height: 1.15;
   margin-bottom: 20px;
-  max-width: 480px;
 }
 
 .gradient-text {
@@ -153,7 +161,7 @@ nav {
 .hero-sub {
   font-size: 16px;
   color: var(--text-muted);
-  max-width: 440px;
+  max-width: 380px;
   margin-bottom: 32px;
   line-height: 1.7;
 }
@@ -178,8 +186,9 @@ nav {
 
 #hero-canvas-wrap {
   flex: 1;
-  height: 100vh;
-  min-height: 500px;
+  height: 70vh;
+  min-height: 400px;
+  max-height: 700px;
   position: relative;
 }
 
@@ -555,18 +564,21 @@ footer {
 
 /* RESPONSIVE */
 @media (max-width: 768px) {
-  #hero {
+  .hero-inner {
     flex-direction: column;
-  }
-
-  #hero-canvas-wrap {
-    height: 350px;
-    width: 100%;
-    min-height: unset;
+    padding: 0 24px;
   }
 
   .hero-content {
-    padding: 80px 0 20px;
+    flex: none;
+    padding-top: 32px;
+  }
+
+  #hero-canvas-wrap {
+    height: 300px;
+    width: 100%;
+    max-height: unset;
+    min-height: unset;
   }
 
   .nav-links {

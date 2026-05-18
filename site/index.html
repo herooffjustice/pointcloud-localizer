@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PointCloud Localizer — ICP Registration Visualizer</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+  <nav>
+    <div class="nav-inner">
+      <a href="#" class="logo">
+        <span class="logo-dot"></span>
+        pointcloud-localizer
+      </a>
+      <div class="nav-links">
+        <a href="#registration">Registration</a>
+        <a href="#algorithm">Algorithm</a>
+        <a href="#convergence">Convergence</a>
+        <a href="#robustness">Robustness</a>
+      </div>
+    </div>
+  </nav>
+
+  <section id="hero">
+    <div class="hero-content">
+      <p class="hero-tag">ICP Point Cloud Registration</p>
+      <h1>Align. Register. <span class="gradient-text">Localize.</span></h1>
+      <p class="hero-sub">Interactive visualization of Iterative Closest Point registration — see how two overlapping point clouds find their rigid transform, step by step.</p>
+      <a href="#registration" class="cta-btn">Explore the Demo</a>
+    </div>
+    <div id="hero-canvas-wrap">
+      <canvas id="hero-canvas"></canvas>
+    </div>
+  </section>
+
+  <section id="registration">
+    <div class="container">
+      <div class="section-header">
+        <p class="section-tag">Registration Demo</p>
+        <h2>Before &amp; After ICP</h2>
+        <p>Source (blue) and target (red) point clouds. Toggle between unaligned and registered views for both Point-to-Point and Point-to-Plane methods.</p>
+      </div>
+
+      <div class="reg-controls">
+        <button class="reg-btn active" data-view="before">Before</button>
+        <button class="reg-btn" data-view="ptp">PtP Registered</button>
+        <button class="reg-btn" data-view="ptpl">PtPl Registered</button>
+      </div>
+
+      <div class="reg-stats" id="reg-stats"></div>
+
+      <div id="reg-canvas-wrap">
+        <canvas id="reg-canvas"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <section id="algorithm">
+    <div class="container">
+      <div class="section-header">
+        <p class="section-tag">How It Works</p>
+        <h2>ICP, Step by Step</h2>
+        <p>Watch the source cloud iteratively converge toward the target. Each step finds closest points, computes the optimal rigid transform via SVD, and applies it.</p>
+      </div>
+
+      <div class="algo-controls">
+        <button id="algo-play" class="algo-btn">&#9654; Play</button>
+        <button id="algo-reset" class="algo-btn secondary">&#8634; Reset</button>
+        <div class="algo-slider-wrap">
+          <label>Iteration: <span id="algo-iter-label">0</span></label>
+          <input type="range" id="algo-slider" min="0" max="7" value="0" step="1">
+        </div>
+      </div>
+      <div class="algo-rmse">RMSE: <span id="algo-rmse-val">—</span></div>
+
+      <div id="algo-canvas-wrap">
+        <canvas id="algo-canvas"></canvas>
+      </div>
+
+      <div class="algo-steps">
+        <div class="step-card">
+          <div class="step-num">1</div>
+          <h3>Find Correspondences</h3>
+          <p>For each source point, find the nearest target point using a KD-tree.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-num">2</div>
+          <h3>Compute Transform</h3>
+          <p>SVD decomposition of the cross-covariance matrix yields the optimal rotation and translation.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-num">3</div>
+          <h3>Apply &amp; Repeat</h3>
+          <p>Apply the transform to the source, then iterate until RMSE converges.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="convergence">
+    <div class="container">
+      <div class="section-header">
+        <p class="section-tag">Convergence</p>
+        <h2>RMSE Over Iterations</h2>
+        <p>Compare how quickly Point-to-Point and Point-to-Plane ICP reduce the registration error.</p>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="convergence-chart"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <section id="robustness">
+    <div class="container">
+      <div class="section-header">
+        <p class="section-tag">Robustness Sweep</p>
+        <h2>Noise &amp; Misalignment</h2>
+        <p>How does ICP hold up under varying noise levels and initial misalignment? Switch between mesh types to see the effect of geometric symmetry.</p>
+      </div>
+
+      <div class="sweep-controls">
+        <button class="sweep-btn active" data-mesh="torus">Torus</button>
+        <button class="sweep-btn" data-mesh="box_plane">Box + Plane</button>
+        <div class="sweep-metric-toggle">
+          <button class="metric-btn active" data-metric="rotation_error_deg">Rotation Error (°)</button>
+          <button class="metric-btn" data-metric="translation_error_m">Translation Error (m)</button>
+          <button class="metric-btn" data-metric="final_rmse">Final RMSE</button>
+        </div>
+      </div>
+
+      <div class="heatmap-wrap" id="heatmap-wrap"></div>
+
+      <div class="sweep-table-wrap">
+        <table id="sweep-table">
+          <thead><tr></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="container">
+      <p>Built with Three.js &amp; Chart.js &mdash; <a href="https://github.com/" target="_blank" rel="noopener">View on GitHub</a></p>
+    </div>
+  </footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

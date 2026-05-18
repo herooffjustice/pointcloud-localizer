@@ -113,8 +113,6 @@ nav {
 /* HERO */
 #hero {
   min-height: 100vh;
-  display: flex;
-  align-items: center;
   padding-top: 56px;
   position: relative;
   overflow: hidden;
@@ -126,12 +124,12 @@ nav {
   padding: 0 48px;
   display: flex;
   align-items: center;
-  width: 100%;
-  gap: 24px;
+  min-height: calc(100vh - 56px);
+  gap: 32px;
 }
 
 .hero-content {
-  flex: 0 0 420px;
+  flex: 0 1 420px;
   z-index: 2;
 }
 
@@ -567,6 +565,7 @@ footer {
   .hero-inner {
     flex-direction: column;
     padding: 0 24px;
+    min-height: unset;
   }
 
   .hero-content {
